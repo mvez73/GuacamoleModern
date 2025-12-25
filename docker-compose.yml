@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # Modern Guacamole Frontend
+  guacamole-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: guacamole-modern-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - GUACAMOLE_URL=http://guacamole-server:8080
+      - NEXT_PUBLIC_GUACAMOLE_WS_URL=ws://guacamole-server:8080/guacamole/websocket
+    depends_on:
+      - guacamole-server
+    networks:
+      - guacamole-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Apache Guacamole Server
+  guacamole-server:
+    image: guacamole/guacamole:latest
+    container_name: guacamole-server
+    ports:
+      - "8080:8080"
+    environment:
+      - GUACD_HOSTNAME=guacd
+      - GUACD_PORT=4822
+      - MYSQL_HOSTNAME=mysql
+      - MYSQL_DATABASE=guacamole_db
+      - MYSQL_USER=guacamole_user
+      - MYSQL_PASSWORD=guacamole_password
+      - MYSQL_PORT=3306
+    depends_on:
+      - guacd
+      - mysql
+    networks:
+      - guacamole-network
+    restart: unless-stopped
+    volumes:
+      - guacamole-config:/etc/guacamole
+
+  # Guacamole Daemon (guacd)
+  guacd:
+    image: guacamole/guacd:latest
+    container_name: guacd
+    ports:
+      - "4822:4822"
+    networks:
+      - guacamole-network
+    restart: unless-stopped
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: guacamole-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=guacamole_db
+      - MYSQL_USER=guacamole_user
+      - MYSQL_PASSWORD=guacamole_password
+    networks:
+      - guacamole-network
+    restart: unless-stopped
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+networks:
+  guacamole-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  guacamole-config:

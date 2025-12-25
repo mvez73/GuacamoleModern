@@ -1,0 +1,72 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun.lockb
+
+# Next.js
+.next/
+out/
+build
+dist
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing
+coverage
+.nyc_output
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+dev.log
+server.log
+
+# Git
+.git
+.gitignore
+
+# Documentation (optional)
+README.md
+docs
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Docker (only exclude backup Dockerfiles, not main Dockerfile)
+Dockerfile.backup
+Dockerfile.old
+docker-compose.yml.backup
+docker-compose.prod.yml.backup
+.dockerignore.backup
+
+# Development
+.prettierrc
+.eslintrc
