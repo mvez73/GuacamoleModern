@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install production dependencies (deterministic)
-RUN npm ci
+RUN npm install
 
 # Copy all source files
 COPY . .
