@@ -9,8 +9,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies (simple npm install)
-RUN npm install
+# Install dependencies (use ci for cached, fast installs)
+RUN npm ci --loglevel=warn
 
 # Copy all source files
 COPY . .
@@ -38,7 +38,7 @@ COPY --from=builder /app/package.json ./package.json
 
 # Copy build output
 COPY --from=builder /chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder /chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static/ ./.next/static
 
 # Environment
 ENV NODE_ENV=production
