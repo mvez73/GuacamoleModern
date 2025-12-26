@@ -1,29 +1,52 @@
 # Multi-stage Dockerfile for Apache Guacamole Modern Frontend
-# Stage 1: Build the Next.js application
+# Fixed version using Bun for Docker compatibility
+
+# Stage 1: Build
 FROM node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
+# Install Bun runtime
+RUN apk add --no-cache curl && \
+    curl -fsSL https://bun.sh/install | bash
+
+# Set PATH for Bun
+ENV PATH="/root/.bun/bin:${PATH}"
+
+# Copy package files
 COPY package.json bun.lock ./
-RUN corepack enable && corepack prepare bun@latest --activate
+
+# Install dependencies
+RUN bun install --frozen-lockfile
 
 # Copy all source files
 COPY . .
 
-# Build the application
+# Build application
 RUN bun run build
 
-# Stage 2: Production image
+# Stage 2: Production Runner
 FROM node:20-alpine AS runner
 
 # Set working directory
 WORKDIR /app
 
+# Install Bun runtime
+RUN apk add --no-cache curl && \
+    curl -fsSL https://bun.sh/install | bash
+
+# Set PATH for Bun
+ENV PATH="/root/.bun/bin:${PATH}"
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
 # Create non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs && \
+    mkdir -p /app/.next && \
+    chown -R nextjs:nodejs /app
 
 # Copy necessary files from builder
 COPY --from=builder /app/public ./public
@@ -37,6 +60,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Expose port
 EXPOSE 3000
@@ -46,28 +70,7 @@ USER nextjs
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD bun run -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start the application
-CMD ["node", "server.js"]
-
-# Stage 3: Development image (optional)
-FROM node:20-alpine AS development
-
-WORKDIR /app
-
-# Install dependencies
-COPY package.json bun.lock ./
-RUN npm ci
-
-# Copy source files
-COPY . .
-
-# Expose port
-EXPOSE 3000
-
-# Set environment
-ENV NODE_ENV=development
-
-# Start development server
-CMD ["bun", "run", "dev"]
+# Start application using dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--", "bun", "server.js"]
