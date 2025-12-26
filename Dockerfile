@@ -58,8 +58,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY package.json bun.lock ./
-RUN corepack enable && corepack prepare bun@latest --activate && \
-    bun install --frozen-lockfile
+RUN npm ci
 
 # Copy source files
 COPY . .
