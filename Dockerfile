@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for Apache Guacamole Modern Frontend
-# Simple and reliable using standard npm
+# Simple version using npm install (no special requirements)
 
 # Stage 1: Build
 FROM node:20-alpine AS builder
@@ -9,10 +9,10 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies (simple npm install)
+RUN npm install
 
-# Copy source files
+# Copy all source files
 COPY . .
 
 # Build application
@@ -23,6 +23,9 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
+# Install dumb-init
+RUN apk add --no-cache dumb-init
+
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs && \
@@ -30,12 +33,12 @@ RUN addgroup --system --gid 1001 nodejs && \
     chown -R nextjs:nodejs /app
 
 # Copy from builder
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
 
 # Copy build output
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder /chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Environment
 ENV NODE_ENV=production
